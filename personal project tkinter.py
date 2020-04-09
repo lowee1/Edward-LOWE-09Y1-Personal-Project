@@ -134,8 +134,10 @@ class DataCollecting(Frame):
 		else:
 			self.trainingDataDf = pd.read_excel(filename)
 		
-		self.ohe = OneHotEncoder()
-		self.ohe.fit(list(set(self.trainingDataDF.to_numpy().flatten().tolist())))
+		self.oheDict = {}
+		for name in self.trainingDataDF:
+			self.oheDict[name] = OneHotEncoder()
+			self.oheDict[name].fit(self.trainingDataDF[name].to_numpy().reshape(-1,1))
 		
 	def chooseColumns(self, controller):
 		self.featureChoices = []
@@ -173,10 +175,8 @@ class DataCollecting(Frame):
 		startButton.grid(column=2)
 
 	def assignData(self):
-		self.featureIndexes = [index for index, value in enumerate(
-			list(map(lambda value:value.get(), self.featureChoices))) if value == 1]
-		self.featureColumnNames = [list(self.trainingDataDF.columns)[
-			i] for i in self.featureIndexes]
+		self.featureIndexes = [index for index, value in enumerate(list(map(lambda value:value.get(), self.featureChoices))) if value == 1]
+		self.featureColumnNames = [list(self.trainingDataDF.columns)[i] for i in self.featureIndexes]
 		self.featureTrain = self.trainingDataDF[self.featureColumnNames].copy()
 
 		self.targetIndexes = [index for index, value in enumerate(
@@ -184,7 +184,6 @@ class DataCollecting(Frame):
 		self.targetColumnNames = [list(self.trainingDataDF.columns)[
 			i] for i in self.targetIndexes]
 		self.targetTrain = self.trainingDataDF[self.targetColumnNames].copy()
-
 
 class Creating(Frame):
 
