@@ -12,7 +12,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import KFold, cross_val_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC, SVR
 
 
@@ -71,7 +71,7 @@ class MachineLearningCreator(tk.Tk):
 		self.frames[DataCollecting].tkraise()
 		self.frames[DataCollecting].grid()
 		self.frames[DataCollecting].getData()
-		self.frames[DataCollecting].chooseColumns(self)
+		self.frames[DataCollecting].chooseColumns()
 
 	def createModel(self):
 		self.frames[DataCollecting].pack_forget()
@@ -121,6 +121,7 @@ class DataCollecting(Frame):
 		titleLabel = Label(self, text='Selecting Training Data',
 						   font=('Verdana', 25), relief=GROOVE)
 		titleLabel.grid(column=0, row=0, padx=20, pady=10, ipadx=100, ipady=30)
+		self.controller = controller
 
 		self.columnChoiceFrame = Frame(self, relief=SUNKEN)
 		self.columnChoiceFrame.grid(
@@ -133,13 +134,12 @@ class DataCollecting(Frame):
 			self.trainingDataDF = pd.read_csv(filename)
 		else:
 			self.trainingDataDf = pd.read_excel(filename)
+
+		if 'Classification' in self.controller.problemType.get():
+			self.le = LabelEncoder()
+			self.le.fit(np.array(list(set(self.trainingDataDF.to_numpy().flatten().tolist()))).reshape(-1,1))
 		
-		self.oheDict = {}
-		for name in self.trainingDataDF:
-			self.oheDict[name] = OneHotEncoder()
-			self.oheDict[name].fit(self.trainingDataDF[name].to_numpy().reshape(-1,1))
-		
-	def chooseColumns(self, controller):
+	def chooseColumns(self):
 		self.featureChoices = []
 		self.targetChoices = []
 		featureLabel = Label(self.columnChoiceFrame,
@@ -171,7 +171,7 @@ class DataCollecting(Frame):
 		self.targetChoices[-1].set(1)
 
 		startButton = Button(self.columnChoiceFrame, text='Next', command=lambda: [
-							 self.assignData(), controller.createModel()])
+							 self.assignData(), self.controllercreateModel()])
 		startButton.grid(column=2)
 
 	def assignData(self):
@@ -179,10 +179,8 @@ class DataCollecting(Frame):
 		self.featureColumnNames = [list(self.trainingDataDF.columns)[i] for i in self.featureIndexes]
 		self.featureTrain = self.trainingDataDF[self.featureColumnNames].copy()
 
-		self.targetIndexes = [index for index, value in enumerate(
-			list(map(lambda value:value.get(), self.targetChoices))) if value == 1]
-		self.targetColumnNames = [list(self.trainingDataDF.columns)[
-			i] for i in self.targetIndexes]
+		self.targetIndexes = [index for index, value in enumerate(list(map(lambda value:value.get(), self.targetChoices))) if value == 1]
+		self.targetColumnNames = [list(self.trainingDataDF.columns)[i] for i in self.targetIndexes]
 		self.targetTrain = self.trainingDataDF[self.targetColumnNames].copy()
 
 class Creating(Frame):
