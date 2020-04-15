@@ -128,6 +128,29 @@ class DataCollecting(Frame):
 		self.columnChoiceFrame.grid(
 			column=0, row=1, padx=20, pady=10, ipadx=50, ipady=30)
 
+		self.columnListbox = Listbox(self.columnChoiceFrame)
+		self.columnListbox.grid(column=0,row=0,rowspan=9)
+
+		
+
+		self.featureAddButton = Button(self.columnChoiceFrame,text='Add >>>')
+		self.featureAddButton.grid(column=1,row=1)
+
+		self.featureRemoveButton = Button(self.columnChoiceFrame,text='<<< Remove')
+		self.featureRemoveButton.grid(column=1,row=2)
+
+		self.featureListbox = Listbox(self.columnChoiceFrame)
+		self.featureListbox.grid(column=2,row=0,rowspan=4)
+
+		self.targetAddButton = Button(self.columnChoiceFrame,text='Add >>>')
+		self.targetAddButton.grid(column=1,row=5)
+
+		self.targetRemoveButton = Button(self.columnChoiceFrame,text='<<< Remove')
+		self.targetRemoveButton.grid(column=1,row=6)
+
+		self.targetListbox = Listbox(self.columnChoiceFrame)
+		self.targetListbox.grid(column=2,row=4,rowspan=4)
+
 	def getData(self):
 		filename = askopenfilename(initialdir='/', title='Choose Training Data', filetypes=[
 								  ('CSV', '*.csv'), ('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')])
@@ -149,9 +172,6 @@ class DataCollecting(Frame):
 		targetLabel = Label(self.columnChoiceFrame,
 							text='Target', font=('Verdana', 18))
 		targetLabel.grid(column=3, row=0)
-
-		featureListBox = Listbox(self.columnChoiceFrame)
-		featureListBox.grid()
 
 		self.featureChoices[0].set(1)
 		self.targetChoices[-1].set(1)
