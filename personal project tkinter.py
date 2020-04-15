@@ -31,7 +31,7 @@ def chooseAlgorithm(problemType,features,targets):
 				  ('SVR', SVR())]
 	else:
 		raise TypeError(['expected either \'classification\' or \'regression\' as problem type'])
-	
+
 	X = features.values
 	Y = targets.values
 
@@ -122,7 +122,7 @@ class DataCollecting(Frame):
 						   font=('Verdana', 25), relief=GROOVE)
 		titleLabel.grid(column=0, row=0, padx=20, pady=10, ipadx=100, ipady=30)
 		self.controller = controller
-		self.trainingDataDf = pd.DataFrame()
+		self.trainingDataDf = 'dQw4w9WgXcQ'
 
 		self.columnChoiceFrame = Frame(self, relief=SUNKEN)
 		self.columnChoiceFrame.grid(
@@ -139,7 +139,7 @@ class DataCollecting(Frame):
 		if 'Classification' in self.controller.problemType.get():
 			self.le = LabelEncoder()
 			self.le.fit(np.array(list(set(self.trainingDataDf.to_numpy().flatten().tolist()))).reshape(-1,1))
-		
+
 	def chooseColumns(self):
 		self.featureChoices = []
 		self.targetChoices = []
@@ -150,29 +150,8 @@ class DataCollecting(Frame):
 							text='Target', font=('Verdana', 18))
 		targetLabel.grid(column=3, row=0)
 
-		# for i in range(len(self.trainingDataDf.columns)):
-		# 	feature = IntVar()
-		# 	target = IntVar()
-		# 	columnName = self.trainingDataDf.columns[i]
-		# 	self.featureChoices.append(feature)
-		# 	self.targetChoices.append(target)
-		# 	columnLabel = Label(self.columnChoiceFrame,
-		# 						text=columnName, font=('Verdana', 12))
-		# 	columnLabel.grid(column=0, padx=10, pady=10)
-		# 	featureButton = Checkbutton(self.columnChoiceFrame, indicatoron=0,
-		# 								width=10, variable=feature, font=('Verdana', 12), relief=SUNKEN)
-		# 	featureButton.grid(column=1, row=i+1, padx=10)
-		# 	featureButton.deselect()
-		# 	targetButton = Checkbutton(self.columnChoiceFrame, indicatoron=0,
-		# 							   width=10, variable=target, font=('Verdana', 12), relief=SUNKEN)
-		# 	targetButton.grid(column=3, row=i+1, padx=10)
-		# 	targetButton.deselect()
-
 		featureListBox = Listbox(self.columnChoiceFrame)
 		featureListBox.grid()
-
-		
-		
 
 		self.featureChoices[0].set(1)
 		self.targetChoices[-1].set(1)
@@ -182,12 +161,14 @@ class DataCollecting(Frame):
 		startButton.grid(column=2)
 
 	def assignData(self):
-		self.featureIndexes = [index for index, value in enumerate(list(map(lambda value:value.get(), self.featureChoices))) if value == 1]
+		self.featureIndexes = [index for index, value in
+							   enumerate(list(map(lambda value:value.get(),self.featureChoices))) if value == 1]
 		self.featureColumnNames = [list(self.trainingDataDf.columns)[i] for i in self.featureIndexes]
 		self.featureTrain = self.trainingDataDf[self.featureColumnNames].copy()
 		self.encodedFeatureTrain = self.featureTrain.applymap(lambda x: self.le.transform(np.array(x).reshape(1,1))[0])
 
-		self.targetIndexes = [index for index, value in enumerate(list(map(lambda value:value.get(), self.targetChoices))) if value == 1]
+		self.targetIndexes = [index for index, value in
+							  enumerate(list(map(lambda value:value.get(), self.targetChoices))) if value == 1]
 		self.targetColumnNames = [list(self.trainingDataDf.columns)[i] for i in self.targetIndexes]
 		self.targetTrain = self.trainingDataDf[self.targetColumnNames].copy()
 		self.encodedTargetTrain = self.targetTrain.applymap(lambda x: self.le.transform(np.array(x).reshape(1,1))[0])
@@ -216,7 +197,6 @@ class Creating(Frame):
 			chooseAlgorithm('classification',Data.featureTrain,Data.targetTrain)
 		else:
 			chooseAlgorithm('regression',Data.featureTrain,Data.targetTrain)
-
 
 app = MachineLearningCreator()
 app.minsize(700, 400)
