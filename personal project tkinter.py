@@ -131,8 +131,6 @@ class DataCollecting(Frame):
 		self.columnListbox = Listbox(self.columnChoiceFrame)
 		self.columnListbox.grid(column=0,row=0,rowspan=9)
 
-		
-
 		self.featureAddButton = Button(self.columnChoiceFrame,text='Add >>>')
 		self.featureAddButton.grid(column=1,row=1)
 
