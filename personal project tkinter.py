@@ -1,6 +1,7 @@
 import tkinter as tk
-from os.path import splitext
+from os import path
 from tkinter import *
+import tkinter.font as tkFont
 from tkinter.filedialog import askopenfilename
 from tkinter.ttk import Progressbar
 
@@ -152,7 +153,7 @@ class DataCollecting(Frame):
 	def getData(self):
 		filename = askopenfilename(initialdir='/', title='Choose Training Data', filetypes=[
 								  ('CSV', '*.csv'), ('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')])
-		if splitext(filename)[1].lower() == '.csv':
+		if path.splitext(filename)[1].lower() == '.csv':
 			self.trainingDataDf = pd.read_csv(filename)
 		else:
 			self.trainingDataDf = pd.read_excel(filename)
