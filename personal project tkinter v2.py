@@ -48,20 +48,30 @@ def chooseAlgorithm(problemType,features,targets):
 		msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
 		print(msg)
 
+def addToListBox(fromListbox,toListbox):
+	selection = [fromListbox.listbox.get(i) for i in fromListbox.listbox.curselection()]
+	for item in selection:
+		toListbox.listbox.insert(END,item)
+
+def deleteFromListBox(fromListbox):
+	selection = fromListbox.listbox.curselection()
+	for i in reversed(selection):
+		fromListbox.listbox.delete(i)
+
 class page(Frame):
 
 	def __init__(self, master,title,font=('Helvetica',60)):
 		super(page,self).__init__(master)
 
 		self.titleLabel = Label(self, text=title, font=font, relief=GROOVE)
-		self.titleLabel.pack(pady=50,padx=30,ipadx=30,ipady=30)
+		self.titleLabel.pack(pady=40,padx=30,ipadx=30,ipady=30)
 
 		self.contentFrame = Frame(self)
 		self.contentFrame.pack()
 
 class scrollingListbox(Frame):
 
-	def __init__(self,master,height=13,width=40):
+	def __init__(self,master,height=10,width=45):
 		super(scrollingListbox,self).__init__(master)
 
 		self.listbox = Listbox(self,selectmode=EXTENDED,height=height,width=width)
@@ -72,9 +82,6 @@ class scrollingListbox(Frame):
 
 		self.listbox.config(yscrollcommand=self.scrollbar.set)
 		self.scrollbar.config(command=self.listbox.yview)
-
-	def insert(self,index,item):
-		self.listbox.insert(index,item)
 
 window = tk.Tk()
 window.title('Machine Learning Creator')
@@ -113,7 +120,7 @@ list(ProblemSelect.contentFrame.children.values())[-1].invoke()
 
 explanationBox.grid(column=1, row=3, sticky=E)
 nxtBtn = Button(ProblemSelect.contentFrame, text="next",command=lambda:continueVar.set(True))
-nxtBtn.grid(column=0, columnspan=2, padx=10, ipadx=30, ipady=5)
+nxtBtn.grid(column=1, columnspan=2, padx=10, ipadx=30, ipady=5)
 
 ProblemSelect.pack_forget()
 
@@ -134,29 +141,49 @@ if 'Classification' in problemType.get():
 	le.fit(np.array(list(set(trainingDataDF.to_numpy().flatten().tolist()))).reshape(-1,1).ravel())
 
 # listbox with all the column names
-columnListbox = scrollingListbox(DataCollecting.contentFrame,25)
-columnListbox.grid(column=0,row=0,rowspan=9,padx=10,pady=10,sticky=NS)
+columnListbox = scrollingListbox(DataCollecting.contentFrame,20)
+columnListbox.grid(column=0,row=0,rowspan=8,padx=10,pady=10,sticky=NS)
 for columName in trainingDataDF.columns:
-	columnListbox.insert(END,columName)
+	columnListbox.listbox.insert(END,columName)
 
-
-featureAddButton = Button(DataCollecting.contentFrame,text='Add >>>')
-featureAddButton.grid(column=1,row=1)
-
-featureRemoveButton = Button(DataCollecting.contentFrame,text='<<< Remove')
-featureRemoveButton.grid(column=1,row=2)
 
 featureListbox = scrollingListbox(DataCollecting.contentFrame)
 featureListbox.grid(column=2,row=0,rowspan=4,padx=10,pady=10)
 
+featureAddButton = Button(DataCollecting.contentFrame,text='Add >>>',
+						  command=lambda:addToListBox(columnListbox,featureListbox))
+featureAddButton.grid(column=1,row=1)
 
-targetAddButton = Button(DataCollecting.contentFrame,text='Add >>>')
-targetAddButton.grid(column=1,row=5)
+featureRemoveButton = Button(DataCollecting.contentFrame,text='<<< Remove',
+							 command=lambda:deleteFromListBox(featureListbox))
+featureRemoveButton.grid(column=1,row=2)
 
-targetRemoveButton = Button(DataCollecting.contentFrame,text='<<< Remove')
-targetRemoveButton.grid(column=1,row=6)
 
 targetListbox = scrollingListbox(DataCollecting.contentFrame)
 targetListbox.grid(column=2,row=4,rowspan=4,padx=10,pady=10)
+
+targetAddButton = Button(DataCollecting.contentFrame,text='Add >>>',
+						 command=lambda:addToListBox(columnListbox,targetListbox))
+targetAddButton.grid(column=1,row=5)
+
+targetRemoveButton = Button(DataCollecting.contentFrame,text='<<< Remove',
+							command=lambda:deleteFromListBox(targetListbox))
+targetRemoveButton.grid(column=1,row=6)
+
+collectDataButton = Button(DataCollecting.contentFrame,text='Next',command=lambda:continueVar.set(True))
+collectDataButton.grid(column=2,row=8,pady=20,ipadx=20)
+collectDataButton.wait_variable(continueVar)
+
+featureColumnNames = featureListbox.listbox.get(0,END)
+targetColumnNames = targetListbox.listbox.get(0,END)
+
+featureTrain = trainingDataDF[featureColumnNames]
+targetTrain = trainingDataDF[targetColumnNames]
+
+if 'Classification' in problemType.get():
+	featureTrain = featureTrain.applymap(lambda x: le.transform(np.array(x).reshape(1,1))[0])
+	targetTrain = targetTrain.applymap(lambda x: le.transform(np.array(x).reshape(1,1))[0])
+
+
 
 window.mainloop()
