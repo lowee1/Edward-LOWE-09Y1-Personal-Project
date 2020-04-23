@@ -12,20 +12,28 @@ from tkinter.ttk import Progressbar
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.model_selection import KFold, cross_val_score
+from sklearn.metrics import hamming_loss
+from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC, SVR
 
+
+
+# Function to score multiple algorithm
+# Author: Jason Brownlee
+# Date: 13 Dec 2019
+# Availability: https://machinelearningmastery.com/compare-machine-learning-algorithms-python-scikit-learn/
+
 def chooseAlgorithm(problemType,features,targets):
-	if problemType == 'classification':
+	if 'Classification' in problemType:
 		models = [('RFC', RandomForestClassifier()),
 				  ('GNB', GaussianNB()),
 				  ('KNC', KNeighborsClassifier()),
 				  ('SVC', SVC()),
 				  ('LDA', LinearDiscriminantAnalysis)]
-	elif problemType == 'regression':
+	elif 'Regression' in problemType:
 		models = [('RFR', RandomForestRegressor()),
 				  ('LNR', LinearRegression()),
 				  ('LGR', LogisticRegression())
@@ -34,18 +42,16 @@ def chooseAlgorithm(problemType,features,targets):
 	else:
 		raise TypeError(['expected either \'classification\' or \'regression\' as problem type'])
 
-	X = features.values
-	Y = targets.values
-
 	results = []
 	names = []
-	scoring = 'accuracy'
+	X_train, X_test, y_train, y_test = train_test_split(features, targets)
 	for name, model in models:
-		kfold = KFold(n_splits=5, random_state=7,shuffle=True)
-		cv_results = cross_val_score(model, X, Y, cv=kfold, scoring=scoring)
-		results.append(cv_results)
+		model.fit(X_train,y_train)
+		y_prediction = pd.DataFrame(model.predict(X_test),columns=targets.columns)
+		score = hamming_loss(y_test.to_numpy(),y_prediction.to_numpy())
+		results.append(score)
 		names.append(name)
-		msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+		msg = "%s: %f (%f)" % (name, score.mean(), score.std())
 		print(msg)
 
 def addToListBox(fromListbox,toListbox):
@@ -177,13 +183,13 @@ collectDataButton.wait_variable(continueVar)
 featureColumnNames = featureListbox.listbox.get(0,END)
 targetColumnNames = targetListbox.listbox.get(0,END)
 
-featureTrain = trainingDataDF[featureColumnNames]
-targetTrain = trainingDataDF[targetColumnNames]
+featureTrain = trainingDataDF[list(featureColumnNames)]
+targetTrain = trainingDataDF[list(targetColumnNames)]
 
 if 'Classification' in problemType.get():
 	featureTrain = featureTrain.applymap(lambda x: le.transform(np.array(x).reshape(1,1))[0])
 	targetTrain = targetTrain.applymap(lambda x: le.transform(np.array(x).reshape(1,1))[0])
 
-
+chooseAlgorithm(problemType.get(),featureTrain,targetTrain)
 
 window.mainloop()
