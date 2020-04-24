@@ -32,7 +32,7 @@ def chooseAlgorithm(problemType,features,targets):
 				  ('GNB', GaussianNB()),
 				  ('KNC', KNeighborsClassifier()),
 				  ('SVC', SVC()),
-				  ('LDA', LinearDiscriminantAnalysis)]
+				  ('LDA', LinearDiscriminantAnalysis())]
 	elif 'Regression' in problemType:
 		models = [('RFR', RandomForestRegressor()),
 				  ('LNR', LinearRegression()),
@@ -42,17 +42,16 @@ def chooseAlgorithm(problemType,features,targets):
 	else:
 		raise TypeError(['expected either \'classification\' or \'regression\' as problem type'])
 
-	results = []
-	names = []
+	results = {}
 	X_train, X_test, y_train, y_test = train_test_split(features, targets)
 	for name, model in models:
 		model.fit(X_train,y_train)
-		y_prediction = pd.DataFrame(model.predict(X_test),columns=targets.columns)
-		score = hamming_loss(y_test.to_numpy(),y_prediction.to_numpy())
-		results.append(score)
-		names.append(name)
+		y_prediction = model.predict(X_test)
+		score = hamming_loss(y_test.to_numpy(),y_prediction)
+		results[name] = score
 		msg = "%s: %f (%f)" % (name, score.mean(), score.std())
 		print(msg)
+
 
 def addToListBox(fromListbox,toListbox):
 	selection = [fromListbox.listbox.get(i) for i in fromListbox.listbox.curselection()]
@@ -190,6 +189,7 @@ if 'Classification' in problemType.get():
 	featureTrain = featureTrain.applymap(lambda x: le.transform(np.array(x).reshape(1,1))[0])
 	targetTrain = targetTrain.applymap(lambda x: le.transform(np.array(x).reshape(1,1))[0])
 
-chooseAlgorithm(problemType.get(),featureTrain,targetTrain)
+algorithms = chooseAlgorithm(problemType.get(),featureTrain,targetTrain)
+print()
 
 window.mainloop()
