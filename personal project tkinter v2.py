@@ -15,7 +15,7 @@ from tkinter.ttk import Progressbar
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import hamming_loss
+from sklearn.metrics import hamming_loss,mean_squared_error
 from sklearn.model_selection import train_test_split,RandomizedSearchCV
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -50,10 +50,10 @@ def chooseAlgorithm(problemType,features,targets):
 	for name, model in models.items():
 		model.fit(X_train,y_train)
 		y_prediction = model.predict(X_test)
-		score = hamming_loss(y_test.to_numpy(),y_prediction)
+		score = mean_squared_error(y_test.to_numpy(),y_prediction)
 		results[name] = score
 
-	bestModelScore = sorted(results.items(),key=lambda x: x[1],reverse=True)[0]
+	bestModelScore = sorted(results.items(),key=lambda x: x[1])[0]
 
 	return models[bestModelScore[0]],bestModelScore[1]
 
@@ -107,6 +107,11 @@ def homePage(window):
 	HomePage.wait_variable(makeOrUse)
 	HomePage.pack_forget()
 
+	if makeOrUse.get() == 'make':
+		makeModel(window)
+	else:
+		print('Haven\'t made this yet')
+
 
 
 def makeModel(window):
@@ -115,11 +120,10 @@ def makeModel(window):
 
 	problemType = StringVar(value="Text (Classification) -- Default")
 	continueVar = BooleanVar()
-	trainingDataDF = DataFrame()
 
 	explanationBox = Label(ProblemSelect.contentFrame)
 
-	problemTypeChoices = {'Images (Classification)': 'Predict a label from an image',
+	problemTypeChoices = {'Images': 'Predict a label from an image',
 						'Numbers (Regression)': 'Numerical data with continuous numerical output e.g. stock market data',
 						'Numbers (Classification)': 'Numerical data with fixed outputs e.g even and odd numbers',
 						'Text (Regression)': 'Text data with continuous numerical output e.g sentiment analysis',
@@ -153,10 +157,6 @@ def makeModel(window):
 
 	# If you didn't clean your data, I'm just going to pad it. Serves you right.
 	trainingDataDF = trainingDataDF.apply(lambda x: x.interpolate(method='pad'))
-
-	if 'Text' in problemType.get():
-		le = LabelEncoder()
-		le.fit(array(list(set(trainingDataDF.to_numpy().flatten().tolist()))).reshape(-1,1).ravel())
 
 	# listbox with all the column names
 	columnListbox = scrollingListbox(DataCollecting.contentFrame,20)
@@ -206,8 +206,14 @@ def makeModel(window):
 	targetTrain = trainingDataDF[list(targetColumnNames)]
 
 	if 'Text' in problemType.get():
-		featureTrain = featureTrain.applymap(lambda x: le.transform(array(x).reshape(1,1))[0])
-		targetTrain = targetTrain.applymap(lambda x: le.transform(array(x).reshape(1,1))[0])
+		featureEncoder = LabelEncoder()
+		featureEncoder.fit(array(list(set(featureTrain.to_numpy().flatten().tolist()))).reshape(-1,1).ravel())
+		featureTrain = featureTrain.applymap(lambda x: featureEncoder.transform(array(x).reshape(1,1))[0])
+
+	if 'Classification' in problemType.get():
+		targetEncoder = LabelEncoder()
+		targetEncoder.fit(array(list(set(targetTrain.to_numpy().flatten().tolist()))).reshape(-1,1).ravel())
+		targetTrain = targetTrain.applymap(lambda x: targetEncoder.transform(array(x).reshape(1,1))[0])
 
 	model,score = chooseAlgorithm(problemType.get(),featureTrain,targetTrain)
 
@@ -215,8 +221,8 @@ def makeModel(window):
 	progress.pack_forget()
 
 	modelname = str(model.__class__).split('.')[-1][:-2]
-	filename = modelname + str(score*100) + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-	filepath = asksaveasfilename(initialfile=filename,mode='w',defaultextension='.mlmc',
+	filename = modelname + str(score) + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+	filepath = asksaveasfilename(initialfile=filename,defaultextension='.mlmc',
 								 filetypes=[('Edward Machine Learning Creater Model','*.emlcm')],
 								 title='Save As')
 	dump(model,filepath,5)
