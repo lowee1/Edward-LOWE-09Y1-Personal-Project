@@ -1,5 +1,7 @@
 from os import path
 
+from scipy.stats import uniform as sp_rand
+
 import numpy as np
 import pandas as pd
 
@@ -13,7 +15,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import hamming_loss
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split,RandomizedSearchCV
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.preprocessing import LabelEncoder
@@ -21,37 +23,38 @@ from sklearn.svm import SVC, SVR
 
 
 
-# Function to score multiple algorithm
+# Function to score multiple algorithms
 # Author: Jason Brownlee
 # Date: 13 Dec 2019
 # Availability: https://machinelearningmastery.com/compare-machine-learning-algorithms-python-scikit-learn/
 
 def chooseAlgorithm(problemType,features,targets):
 	if 'Classification' in problemType:
-		models = [('RFC', RandomForestClassifier()),
-				  ('GNB', GaussianNB()),
-				  ('KNC', KNeighborsClassifier()),
-				  ('SVC', SVC()),
-				  ('LDA', LinearDiscriminantAnalysis())]
+		models = {'RFC': RandomForestClassifier(),
+				  'GNB': GaussianNB(),
+				  'KNC': KNeighborsClassifier(),
+				  'SVC': SVC(),
+				  'LDA': LinearDiscriminantAnalysis()}
 	elif 'Regression' in problemType:
-		models = [('RFR', RandomForestRegressor()),
-				  ('LNR', LinearRegression()),
-				  ('LGR', LogisticRegression())
-				  ('KNR', KNeighborsClassifier),
-				  ('SVR', SVR())]
+		models = {'RFR': RandomForestRegressor(),
+				  'LNR': LinearRegression(),
+				  'LGR': LogisticRegression(),
+				  'KNR': KNeighborsClassifier(),
+				  'SVR': SVR()}
 	else:
 		raise TypeError(['expected either \'classification\' or \'regression\' as problem type'])
 
 	results = {}
 	X_train, X_test, y_train, y_test = train_test_split(features, targets)
-	for name, model in models:
+	for name, model in models.items():
 		model.fit(X_train,y_train)
 		y_prediction = model.predict(X_test)
 		score = hamming_loss(y_test.to_numpy(),y_prediction)
 		results[name] = score
-		msg = "%s: %f (%f)" % (name, score.mean(), score.std())
-		print(msg)
 
+	best_model = models[sorted(results.items(),key=lambda x: x[1],reverse=True)[0][0]]
+
+	return best_model
 
 def addToListBox(fromListbox,toListbox):
 	selection = [fromListbox.listbox.get(i) for i in fromListbox.listbox.curselection()]
@@ -100,9 +103,14 @@ trainingDataDF = pd.DataFrame()
 # homepage
 HomePage = page(window,'Machine Learning Creator')
 HomePage.pack(fill=BOTH,expand=1)
+
 startButton = Button(HomePage.contentFrame,text='Start',command=lambda:continueVar.set(True),font=('helvetica',30))
-startButton.grid(padx=20,pady=20)
-startButton.wait_variable(continueVar)
+startButton.pack(pady=20)
+
+predictButton = Button(HomePage.contentFrame,text='Predict',command=lambda:continueVar.set(True),font=('helvetica',30))
+predictButton.pack(pady=20)
+
+HomePage.wait_variable(continueVar)
 HomePage.pack_forget()
 
 # problem type selection
@@ -141,7 +149,10 @@ if path.splitext(filename)[1].lower() == '.csv':
 else:
 	trainingDataDF = pd.read_excel(filename)
 
-if 'Classification' in problemType.get():
+# If you didn't clean your data, I'm just going to pad it. Serves you right.
+trainingDataDF = trainingDataDF.apply(lambda x: x.interpolate(method='pad'))
+
+if 'Text' in problemType.get():
 	le = LabelEncoder()
 	le.fit(np.array(list(set(trainingDataDF.to_numpy().flatten().tolist()))).reshape(-1,1).ravel())
 
@@ -185,11 +196,11 @@ targetColumnNames = targetListbox.listbox.get(0,END)
 featureTrain = trainingDataDF[list(featureColumnNames)]
 targetTrain = trainingDataDF[list(targetColumnNames)]
 
-if 'Classification' in problemType.get():
+if 'Text' in problemType.get():
 	featureTrain = featureTrain.applymap(lambda x: le.transform(np.array(x).reshape(1,1))[0])
 	targetTrain = targetTrain.applymap(lambda x: le.transform(np.array(x).reshape(1,1))[0])
 
-algorithms = chooseAlgorithm(problemType.get(),featureTrain,targetTrain)
-print()
+model = chooseAlgorithm(problemType.get(),featureTrain,targetTrain)
+
 
 window.mainloop()
