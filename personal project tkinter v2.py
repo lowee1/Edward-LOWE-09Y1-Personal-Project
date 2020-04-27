@@ -10,12 +10,11 @@ import tkinter as tk
 from tkinter import Tk,Frame,Label,Button,Radiobutton,Listbox,Scrollbar,StringVar,BooleanVar
 from tkinter.font import Font
 from tkinter.filedialog import askopenfilename,asksaveasfilename
-from tkinter.ttk import Progressbar
+from tkinter.ttk import Progressbar,Separator
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import hamming_loss,mean_squared_error
 from sklearn.model_selection import train_test_split,RandomizedSearchCV
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
@@ -49,13 +48,14 @@ def chooseAlgorithm(problemType,features,targets):
 	X_train, X_test, y_train, y_test = train_test_split(features, targets)
 	for name, model in models.items():
 		model.fit(X_train,y_train)
-		y_prediction = model.predict(X_test)
-		score = mean_squared_error(y_test.to_numpy(),y_prediction)
+		score = model.score(X_test,y_test)
 		results[name] = score
 
 	bestModelScore = sorted(results.items(),key=lambda x: x[1])[0]
 
-	return models[bestModelScore[0]],bestModelScore[1]
+	model = models[bestModelScore[0]].fit(features,targets)
+
+	return model
 
 def addToListBox(fromListbox,toListbox):
 	selection = [fromListbox.listbox.get(i) for i in fromListbox.listbox.curselection()]
@@ -111,8 +111,6 @@ def homePage(window):
 		makeModel(window)
 	else:
 		print('Haven\'t made this yet')
-
-
 
 def makeModel(window):
 	ProblemSelect = page(window,'Problem Type')
@@ -215,13 +213,13 @@ def makeModel(window):
 		targetEncoder.fit(array(list(set(targetTrain.to_numpy().flatten().tolist()))).reshape(-1,1).ravel())
 		targetTrain = targetTrain.applymap(lambda x: targetEncoder.transform(array(x).reshape(1,1))[0])
 
-	model,score = chooseAlgorithm(problemType.get(),featureTrain,targetTrain)
+	model = chooseAlgorithm(problemType.get(),featureTrain,targetTrain)
 
 	progress.stop()
 	progress.pack_forget()
 
 	modelname = str(model.__class__).split('.')[-1][:-2]
-	filename = modelname + str(score) + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+	filename = modelname + ' ' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 	filepath = asksaveasfilename(initialfile=filename,defaultextension='.mlmc',
 								 filetypes=[('Edward Machine Learning Creater Model','*.emlcm')],
 								 title='Save As')
@@ -232,6 +230,16 @@ def makeModel(window):
 
 	quitButton = Button(window,text='Home Page',font=('Helvetica',30),command=window.destroy())
 	quitButton.pack()
+
+def useModel():
+	PredictPage = page(window,'Predict')
+	PredictPage.grid()
+
+	filename = askopenfilename(filetypes=[('Edward Machine Learning Creator Model','*.emlcm')],title='Select Model')
+	model = load(filename)
+
+
+
 
 window = tk.Tk()
 window.title('Machine Learning Creator')
