@@ -13,13 +13,13 @@ from tkinter.filedialog import askopenfilename,asksaveasfilename
 from tkinter.ttk import Progressbar,Separator
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, ExtraTreesClassifier,ExtraTreesRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression,SGDRegressor,SGDClassifier,Lasso,ElasticNet,Ridge
 from sklearn.model_selection import train_test_split,RandomizedSearchCV
-from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import GaussianNB,MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.preprocessing import LabelEncoder
-from sklearn.svm import SVC, SVR
+from sklearn.svm import SVC, SVR,LinearSVC,LinearSVR
 
 
 
@@ -31,27 +31,37 @@ from sklearn.svm import SVC, SVR
 def chooseAlgorithm(problemType,features,targets):
 	if 'Classification' in problemType:
 		models = {'RFC': RandomForestClassifier(),
+				  'ETC': ExtraTreesClassifier,
 				  'GNB': GaussianNB(),
+				  'MNB': MultinomialNB(),
 				  'KNC': KNeighborsClassifier(),
 				  'SVC': SVC(),
-				  'LDA': LinearDiscriminantAnalysis()}
+				  'LSVC': LinearSVC(),
+				  'LGR': LogisticRegression(),
+				  'LDA': LinearDiscriminantAnalysis(),
+				  'SDGC': SGDClassifier}
 	elif 'Regression' in problemType:
 		models = {'RFR': RandomForestRegressor(),
+				  'ETR': ExtraTreesClassifier(),
 				  'LNR': LinearRegression(),
-				  'LGR': LogisticRegression(),
+				  'SDGR': SGDRegressor,
 				  'KNR': KNeighborsClassifier(),
-				  'SVR': SVR()}
+				  'SVR': SVR(),
+				  'LSVR': LinearSVR(),
+				  'Lasso':Lasso(),
+				  'ENET':ElasticNet(),
+				  'Ridge':Ridge()}
 	else:
 		raise TypeError(['expected either \'classification\' or \'regression\' as problem type'])
 
 	results = {}
-	X_train, X_test, y_train, y_test = train_test_split(features, targets)
+	X_train, X_test, y_train, y_test = train_test_split(features, targets.values.ravel())
 	for name, model in models.items():
 		model.fit(X_train,y_train)
 		score = model.score(X_test,y_test)
 		results[name] = score
 
-	bestModelScore = sorted(results.items(),key=lambda x: x[1])[0]
+	bestModelScore = sorted(results.items(),key=lambda x: x[1],reverse=True)[0]
 
 	model = models[bestModelScore[0]].fit(features,targets)
 
@@ -110,7 +120,7 @@ def homePage(window):
 	if makeOrUse.get() == 'make':
 		makeModel(window)
 	else:
-		print('Haven\'t made this yet')
+		useModel(window)
 
 def makeModel(window):
 	ProblemSelect = page(window,'Problem Type')
@@ -190,12 +200,17 @@ def makeModel(window):
 	collectDataButton.grid(column=2,row=8,pady=20,ipadx=20)
 
 	DataCollecting.wait_variable(continueVar)
-	DataCollecting.grid_forget()
+	DataCollecting.pack_forget()
 
-	progress = Progressbar(window)
+	creating = page(window,'Creating')
+	creating.pack()
+
+	progress = Progressbar(creating.contentFrame)
 	progress.pack()
 	progress.config(mode='indeterminate')
 	progress.start()
+
+	sleep(2)
 
 	featureColumnNames = featureListbox.listbox.get(0,'end')
 	targetColumnNames = targetListbox.listbox.get(0,'end')
@@ -225,20 +240,32 @@ def makeModel(window):
 								 title='Save As')
 	dump(model,filepath,5)
 
-	backButton = Button(window,text='Home Page',font=('Helvetica',30),command=homePage(window))
-	backButton.pack()
+	backButton = Button(window,text='Home Page',font=('Helvetica',30),
+						command=lambda:[continueVar.set(True),homePage(window)])
+	backButton.pack(pady=20)
 
-	quitButton = Button(window,text='Home Page',font=('Helvetica',30),command=window.destroy())
-	quitButton.pack()
+	quitButton = Button(window,text='Quit',font=('Helvetica',30),
+						command=lambda:[continueVar.set(True),window.destroy()])
+	quitButton.pack(pady=20)
 
-def useModel():
+	creating.wait_variable(continueVar)
+	creating.destroy()
+
+def useModel(window):
 	PredictPage = page(window,'Predict')
 	PredictPage.grid()
 
-	filename = askopenfilename(filetypes=[('Edward Machine Learning Creator Model','*.emlcm')],title='Select Model')
+	filename = askopenfilename(filetypes=[('Edward Machine Learning Creator Model','*.emlcm')],title='Load Model')
 	model = load(filename)
 
+	manualInputButton = Button(PredictPage.contentFrame,text='manually input features')
+	manualInputButton.grid(column=0,row=0)
 
+	inputSeparator = Separator(PredictPage.contentFrame,orient='vertical')
+	inputSeparator.grid(column=1,row=0)
+
+	loadFeaturesButton = Button(PredictPage.contentFrame,text='load features')
+	loadFeaturesButton.grid(column=2,row=0)
 
 
 window = tk.Tk()
