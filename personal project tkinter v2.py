@@ -7,7 +7,7 @@ from numpy import array
 from pandas import DataFrame,read_csv,read_excel
 
 import tkinter as tk
-from tkinter import Tk,Frame,Label,Button,Radiobutton,Listbox,Scrollbar,StringVar,BooleanVar
+from tkinter import Tk,Frame,Label,Button,Radiobutton,Listbox,Scrollbar,StringVar,BooleanVar,messagebox
 from tkinter.font import Font
 from tkinter.filedialog import askopenfilename,asksaveasfilename
 from tkinter.ttk import Progressbar,Separator
@@ -156,12 +156,19 @@ def makeModel(window):
 	DataCollecting.pack()
 
 	# load data
-	filename = askopenfilename(title='Choose Training Data', filetypes=[
-								('CSV', '*.csv'), ('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')])
-	if path.splitext(filename)[1].lower() == '.csv':
-		trainingDataDF = read_csv(filename)
-	else:
-		trainingDataDF = read_excel(filename)
+	filenotLoaded = True
+	while filenotLoaded:
+		try:
+			filename = askopenfilename(title='Choose Training Data', filetypes=[
+										('CSV', '*.csv'), ('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')])
+			if path.splitext(filename)[1].lower() == '.csv':
+				trainingDataDF = read_csv(filename)
+			else:
+				trainingDataDF = read_excel(filename)
+		except:
+			messagebox.showwarning(title='Warning',message='You must select a valid file')
+			continue
+		filenotLoaded = True
 
 	# If you didn't clean your data, I'm just going to pad it. Serves you right.
 	trainingDataDF = trainingDataDF.apply(lambda x: x.interpolate(method='pad'))
@@ -196,7 +203,8 @@ def makeModel(window):
 								command=lambda:deleteFromListBox(targetListbox))
 	targetRemoveButton.grid(column=1,row=6)
 
-	collectDataButton = Button(DataCollecting.contentFrame,text='Create',command=lambda:continueVar.set(True))
+	collectDataButton = Button(DataCollecting.contentFrame,text='Create',
+							   command=lambda:continueVar.set(True) if len(featureListbox.get(0,END)) > 0 and len(targetListbox.get(0,END)) > 0 else messagebox.showwarning(title='Warning'))
 	collectDataButton.grid(column=2,row=8,pady=20,ipadx=20)
 
 	DataCollecting.wait_variable(continueVar)
@@ -218,13 +226,14 @@ def makeModel(window):
 	featureTrain = trainingDataDF[list(featureColumnNames)]
 	targetTrain = trainingDataDF[list(targetColumnNames)]
 
+	featureEncoder = LabelEncoder()
+	targetEncoder = LabelEncoder()
+
 	if 'Text' in problemType.get():
-		featureEncoder = LabelEncoder()
 		featureEncoder.fit(array(list(set(featureTrain.to_numpy().flatten().tolist()))).reshape(-1,1).ravel())
 		featureTrain = featureTrain.applymap(lambda x: featureEncoder.transform(array(x).reshape(1,1))[0])
 
 	if 'Classification' in problemType.get():
-		targetEncoder = LabelEncoder()
 		targetEncoder.fit(array(list(set(targetTrain.to_numpy().flatten().tolist()))).reshape(-1,1).ravel())
 		targetTrain = targetTrain.applymap(lambda x: targetEncoder.transform(array(x).reshape(1,1))[0])
 
@@ -238,7 +247,7 @@ def makeModel(window):
 	filepath = asksaveasfilename(initialfile=filename,defaultextension='.mlmc',
 								 filetypes=[('Edward Machine Learning Creater Model','*.emlcm')],
 								 title='Save As')
-	dump(model,filepath,5)
+	dump([model,problemType,featureEncoder,targetEncoder],filepath,5)
 
 	backButton = Button(window,text='Home Page',font=('Helvetica',30),
 						command=lambda:[continueVar.set(True),homePage(window)])
@@ -256,15 +265,20 @@ def useModel(window):
 	PredictPage.grid()
 
 	filename = askopenfilename(filetypes=[('Edward Machine Learning Creator Model','*.emlcm')],title='Load Model')
-	model = load(filename)
+	loadedFile = load(filename)
 
-	manualInputButton = Button(PredictPage.contentFrame,text='manually input features')
+	model,problemType,featureEncoder,targetEncoder = loadedFile
+	inputMethod = StringVar()
+
+	manualInputButton = Button(PredictPage.contentFrame,text='manually input features',
+							   command=lambda:inputMethod.set('manual'))
 	manualInputButton.grid(column=0,row=0)
 
 	inputSeparator = Separator(PredictPage.contentFrame,orient='vertical')
 	inputSeparator.grid(column=1,row=0)
 
-	loadFeaturesButton = Button(PredictPage.contentFrame,text='load features')
+	loadFeaturesButton = Button(PredictPage.contentFrame,text='load features',
+								command=lambda:inputMethod.set('file'))
 	loadFeaturesButton.grid(column=2,row=0)
 
 
