@@ -1,27 +1,28 @@
+import sys
+
 from os import path
+from math import sqrt
+from time import sleep
 from joblib import dump,load
 from datetime import datetime
-from time import sleep
 
 from numpy import array
 from pandas import DataFrame,read_csv,read_excel
 
 import tkinter as tk
-from tkinter import Tk,Frame,Label,Button,Radiobutton,Listbox,Scrollbar,StringVar,BooleanVar,messagebox
 from tkinter.font import Font
-from tkinter.filedialog import askopenfilename,asksaveasfilename
 from tkinter.ttk import Progressbar,Separator
+from tkinter.filedialog import askopenfilename,asksaveasfilename
+from tkinter import Tk,Frame,Label,Button,Radiobutton,Listbox,Scrollbar,StringVar,BooleanVar,messagebox
 
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, ExtraTreesClassifier,ExtraTreesRegressor
-from sklearn.linear_model import LinearRegression, LogisticRegression,SGDRegressor,SGDClassifier,Lasso,ElasticNet,Ridge
-from sklearn.model_selection import train_test_split,RandomizedSearchCV
-from sklearn.naive_bayes import GaussianNB,MultinomialNB
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC, SVR,LinearSVC,LinearSVR
-
-
+from sklearn.naive_bayes import GaussianNB,MultinomialNB
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.model_selection import train_test_split,RandomizedSearchCV
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, ExtraTreesClassifier,ExtraTreesRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression,SGDRegressor,SGDClassifier,Lasso,ElasticNet,Ridge
 
 # Function to score multiple algorithms
 # Author: Jason Brownlee
@@ -31,21 +32,21 @@ from sklearn.svm import SVC, SVR,LinearSVC,LinearSVR
 def chooseAlgorithm(problemType,features,targets):
 	if 'Classification' in problemType:
 		models = {'RFC': RandomForestClassifier(),
-				  'ETC': ExtraTreesClassifier,
+				  'ETC': ExtraTreesClassifier(),
 				  'GNB': GaussianNB(),
 				  'MNB': MultinomialNB(),
-				  'KNC': KNeighborsClassifier(),
+				  'KNC': KNeighborsClassifier(n_neighbors=round(sqrt(len(features.index)))),
 				  'SVC': SVC(),
 				  'LSVC': LinearSVC(),
 				  'LGR': LogisticRegression(),
 				  'LDA': LinearDiscriminantAnalysis(),
-				  'SDGC': SGDClassifier}
+				  'SDGC': SGDClassifier()}
 	elif 'Regression' in problemType:
 		models = {'RFR': RandomForestRegressor(),
-				  'ETR': ExtraTreesClassifier(),
+				  'ETR': ExtraTreesRegressor(),
 				  'LNR': LinearRegression(),
-				  'SDGR': SGDRegressor,
-				  'KNR': KNeighborsClassifier(),
+				  'SDGR': SGDRegressor(),
+				  'KNR': KNeighborsRegressor(n_neighbors=round(sqrt(len(features.index)))),
 				  'SVR': SVR(),
 				  'LSVR': LinearSVR(),
 				  'Lasso':Lasso(),
@@ -157,28 +158,36 @@ def makeModel(window):
 
 	# load data
 	filenotLoaded = True
+	counter = 0
 	while filenotLoaded:
+		if counter == 10:
+			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
+			sys.exit()
 		try:
+			counter += 1
 			filename = askopenfilename(title='Choose Training Data', filetypes=[
 										('CSV', '*.csv'), ('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')])
 			if path.splitext(filename)[1].lower() == '.csv':
 				trainingDataDF = read_csv(filename)
 			else:
 				trainingDataDF = read_excel(filename)
-		except:
-			messagebox.showwarning(title='Warning',message='You must select a valid file')
+			# If you didn't clean your data, I'm just going to destroy it. Serves you right.
+			trainingDataDF = trainingDataDF.apply(lambda x: x.interpolate(method='pad'))
+			trainingDataDF = trainingDataDF.dropna(how='any')
+			if len(trainingDataDF.index) < 50:
+				raise ValueError(': Not enough data. Have to have at least 50 samples of data.\n'
+								 'If you think you have enough, it might be because there were'
+								 'invalid values that were autmoatically taken out.')
+		except Exception as e:
+			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
 			continue
-		filenotLoaded = True
-
-	# If you didn't clean your data, I'm just going to pad it. Serves you right.
-	trainingDataDF = trainingDataDF.apply(lambda x: x.interpolate(method='pad'))
+		filenotLoaded = False
 
 	# listbox with all the column names
 	columnListbox = scrollingListbox(DataCollecting.contentFrame,20)
 	columnListbox.grid(column=0,row=0,rowspan=8,padx=10,pady=10,sticky='ns')
 	for columName in trainingDataDF.columns:
 		columnListbox.listbox.insert('end',columName)
-
 
 	featureListbox = scrollingListbox(DataCollecting.contentFrame)
 	featureListbox.grid(column=2,row=0,rowspan=4,padx=10,pady=10)
@@ -204,7 +213,9 @@ def makeModel(window):
 	targetRemoveButton.grid(column=1,row=6)
 
 	collectDataButton = Button(DataCollecting.contentFrame,text='Create',
-							   command=lambda:continueVar.set(True) if len(featureListbox.get(0,END)) > 0 and len(targetListbox.get(0,END)) > 0 else messagebox.showwarning(title='Warning'))
+							   command=lambda:continueVar.set(True)
+							   if len(featureListbox.listbox.get(0,'end')) > 0 and len(targetListbox.listbox.get(0,'end')) > 0
+							   else messagebox.showwarning(title='Warning',message='You must have at least one feature and one target'))
 	collectDataButton.grid(column=2,row=8,pady=20,ipadx=20)
 
 	DataCollecting.wait_variable(continueVar)
@@ -247,7 +258,7 @@ def makeModel(window):
 	filepath = asksaveasfilename(initialfile=filename,defaultextension='.mlmc',
 								 filetypes=[('Edward Machine Learning Creater Model','*.emlcm')],
 								 title='Save As')
-	dump([model,problemType,featureEncoder,targetEncoder],filepath,5)
+	dump([model,problemType.get(),featureEncoder,targetEncoder],filepath,5)
 
 	backButton = Button(window,text='Home Page',font=('Helvetica',30),
 						command=lambda:[continueVar.set(True),homePage(window)])
