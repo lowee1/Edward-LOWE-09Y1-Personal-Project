@@ -132,11 +132,10 @@ def makeModel(window):
 
 	explanationBox = Label(ProblemSelect.contentFrame)
 
-	problemTypeChoices = {'Images': 'Predict a label from an image',
-						'Numbers (Regression)': 'Numerical data with continuous numerical output e.g. stock market data',
-						'Numbers (Classification)': 'Numerical data with fixed outputs e.g even and odd numbers',
-						'Text (Regression)': 'Text data with continuous numerical output e.g sentiment analysis',
-						'Text (Classification) -- Default': 'Text data with fixed outputs e.g spam filtering. Default option'}
+	problemTypeChoices = {'Numbers (Regression)': 'Numerical data with continuous numerical output e.g. stock market data',
+						  'Numbers (Classification)': 'Numerical data with fixed outputs e.g even and odd numbers',
+						  'Text (Regression)': 'Text data with continuous numerical output e.g sentiment analysis',
+						  'Text (Classification) -- Default': 'Text data with fixed outputs e.g spam filtering. Default option'}
 
 	for choice, description in problemTypeChoices.items():
 		option = Radiobutton(ProblemSelect.contentFrame, text=choice, variable=problemType, value=choice,
@@ -157,9 +156,9 @@ def makeModel(window):
 	DataCollecting.pack()
 
 	# load data
-	filenotLoaded = True
+	fileNotLoaded = True
 	counter = 0
-	while filenotLoaded:
+	while fileNotLoaded:
 		if counter == 10:
 			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
 			sys.exit()
@@ -181,7 +180,7 @@ def makeModel(window):
 		except Exception as e:
 			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
 			continue
-		filenotLoaded = False
+		fileNotLoaded = False
 
 	# listbox with all the column names
 	columnListbox = scrollingListbox(DataCollecting.contentFrame,20)
@@ -258,7 +257,8 @@ def makeModel(window):
 	filepath = asksaveasfilename(initialfile=filename,defaultextension='.mlmc',
 								 filetypes=[('Edward Machine Learning Creater Model','*.emlcm')],
 								 title='Save As')
-	dump([model,problemType.get(),featureEncoder,targetEncoder],filepath,5)
+
+	dump([model,problemType.get(),featureEncoder,targetEncoder,featureTrain.columns],filepath,5)
 
 	backButton = Button(window,text='Home Page',font=('Helvetica',30),
 						command=lambda:[continueVar.set(True),homePage(window)])
@@ -275,22 +275,66 @@ def useModel(window):
 	PredictPage = page(window,'Predict')
 	PredictPage.grid()
 
-	filename = askopenfilename(filetypes=[('Edward Machine Learning Creator Model','*.emlcm')],title='Load Model')
-	loadedFile = load(filename)
+	fileNotLoaded = True
+	counter = 10
+	while fileNotLoaded:
+		if counter == 10:
+			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
+			sys.exit()
+		try:
+			filename = askopenfilename(filetypes=[('Edward Machine Learning Creator Model','*.emlcm')],title='Load Model')
+			if len(load(filename)) != 5:
+				raise ValueError('File is invalid')
+			model,problemType,featureEncoder,targetEncoder,featureColumns = load(filename)
+			if not(
+				   ('sklearn' in str(type(model))) and
+				   ('Classification' in problemType or 'Regression' in problemType) and
+				   ('Text' in problemType or 'Regression' in problemType) and
+				   ('LabelEncoder' in str(type(featureEncoder))) and
+				   ('LabelEncoder' in str(type(targetEncoder))) and
+				   (isinstance(len(featureColumns),int))
+				   ):
+				raise ValueError('File is invalid')
+		except Exception as e:
+			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
+			continue
+		fileNotLoaded = False
 
-	model,problemType,featureEncoder,targetEncoder = loadedFile
-	inputMethod = StringVar()
+	sleep(1)
 
-	manualInputButton = Button(PredictPage.contentFrame,text='manually input features',
-							   command=lambda:inputMethod.set('manual'))
-	manualInputButton.grid(column=0,row=0)
+	fileNotLoaded = True
+	counter = 10
+	while fileNotLoaded:
+		if counter == 10:
+			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
+			sys.exit()
+		try:
+			filename = askopenfilename(filetypes=[('CSV','*.csv'),
+												('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')],
+												title='Load Features')
+			features = read_csv(filename)
+			features = features.dropna(how='any')
+			if features.columns != featureColumns:
+				raise ValueError('incorrect features (columns)')
+		except Exception as e:
+			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
+			continue
+		fileNotLoaded = False
 
-	inputSeparator = Separator(PredictPage.contentFrame,orient='vertical')
-	inputSeparator.grid(column=1,row=0)
+	results = model.predict(features)
 
-	loadFeaturesButton = Button(PredictPage.contentFrame,text='load features',
-								command=lambda:inputMethod.set('file'))
-	loadFeaturesButton.grid(column=2,row=0)
+	messagebox.showinfo(text='Finished prediction. Saving results to file now')
+
+	fileNotLoaded = True
+	counter = 10
+	while fileNotLoaded:
+		if counter == 10:
+			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
+			sys.exit()
+		try:
+			filename = asksaveasfilename(filetypes=[('CSV','*.csv'),('Excel spreadsheets','*.xls *.xlsx *.xlsm *.xlsb')])
+			if path.splitext(filename)[1].lower() == '.csv':
+				
 
 
 window = tk.Tk()
