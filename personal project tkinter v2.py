@@ -24,6 +24,9 @@ from sklearn.model_selection import train_test_split,RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, ExtraTreesClassifier,ExtraTreesRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression,SGDRegressor,SGDClassifier,Lasso,ElasticNet,Ridge
 
+retryError = 'Too many retries. Going to exit'
+dataFiletypes = [('CSV', '*.csv'), ('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')]
+
 # Function to score multiple algorithms
 # Author: Jason Brownlee
 # Date: 13 Dec 2019
@@ -160,12 +163,11 @@ def makeModel(window):
 	counter = 0
 	while fileNotLoaded:
 		if counter == 10:
-			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
+			messagebox.showerror(title='Error',message=retryError)
 			sys.exit()
 		try:
 			counter += 1
-			filename = askopenfilename(title='Choose Training Data', filetypes=[
-										('CSV', '*.csv'), ('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')])
+			filename = askopenfilename(title='Choose Training Data', filetypes=dataFiletypes)
 			if path.splitext(filename)[1].lower() == '.csv':
 				trainingDataDF = read_csv(filename)
 			else:
@@ -254,34 +256,46 @@ def makeModel(window):
 
 	modelname = str(model.__class__).split('.')[-1][:-2]
 	filename = modelname + ' ' + datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-	filepath = asksaveasfilename(initialfile=filename,defaultextension='.mlmc',
-								 filetypes=[('Edward Machine Learning Creater Model','*.emlcm')],
-								 title='Save As')
 
-	dump([model,problemType.get(),featureEncoder,targetEncoder,featureTrain.columns],filepath,5)
+	fileNotLoaded = True
+	counter = 0
+	while fileNotLoaded:
+		if counter == 10:
+			messagebox.showerror(title='Error',message=retryError)
+			sys.exit()
+		try:
+			counter += 1
+			filepath = asksaveasfilename(initialfile=filename,defaultextension='.mlmc',
+							filetypes=[('Edward Machine Learning Creater Model','*.emlcm')],
+							title='Save As')
+			dump([model,problemType.get(),featureEncoder,targetEncoder,featureTrain.columns],filepath,5)
+		except Exception as e:
+			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
+			continue
+		fileNotLoaded = False
 
-	backButton = Button(window,text='Home Page',font=('Helvetica',30),
-						command=lambda:[continueVar.set(True),homePage(window)])
+	backButton = Button(creating.contentFrame,text='Home Page',font=('Helvetica',30),
+						command=lambda:[continueVar.set(True),creating.destroy(),homePage(window)])
 	backButton.pack(pady=20)
 
-	quitButton = Button(window,text='Quit',font=('Helvetica',30),
+	quitButton = Button(creating.contentFrame,text='Quit',font=('Helvetica',30),
 						command=lambda:[continueVar.set(True),window.destroy()])
 	quitButton.pack(pady=20)
 
 	creating.wait_variable(continueVar)
-	creating.destroy()
 
 def useModel(window):
 	PredictPage = page(window,'Predict')
-	PredictPage.grid()
+	PredictPage.pack()
 
 	fileNotLoaded = True
-	counter = 10
+	counter = 0
 	while fileNotLoaded:
 		if counter == 10:
-			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
+			messagebox.showerror(title='Error',message=retryError)
 			sys.exit()
 		try:
+			counter += 1
 			filename = askopenfilename(filetypes=[('Edward Machine Learning Creator Model','*.emlcm')],title='Load Model')
 			if len(load(filename)) != 5:
 				raise ValueError('File is invalid')
@@ -292,7 +306,7 @@ def useModel(window):
 				   ('Text' in problemType or 'Regression' in problemType) and
 				   ('LabelEncoder' in str(type(featureEncoder))) and
 				   ('LabelEncoder' in str(type(targetEncoder))) and
-				   (isinstance(len(featureColumns),int))
+				   ('pandas.core.indexes.base.Index' in str(type(featureColumns)))
 				   ):
 				raise ValueError('File is invalid')
 		except Exception as e:
@@ -303,39 +317,46 @@ def useModel(window):
 	sleep(1)
 
 	fileNotLoaded = True
-	counter = 10
+	counter = 0
 	while fileNotLoaded:
 		if counter == 10:
-			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
+			messagebox.showerror(title='Error',message=retryError)
 			sys.exit()
 		try:
-			filename = askopenfilename(filetypes=[('CSV','*.csv'),
-												('Excel spreadsheets', '*.xls *.xlsx *.xlsm *.xlsb')],
+			counter += 1
+			filename = askopenfilename(filetypes=dataFiletypes,
 												title='Load Features')
 			features = read_csv(filename)
 			features = features.dropna(how='any')
-			if features.columns != featureColumns:
+			if features.columns.tolist() != featureColumns.tolist():
 				raise ValueError('incorrect features (columns)')
 		except Exception as e:
 			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
 			continue
 		fileNotLoaded = False
 
-	results = model.predict(features)
+	results = DataFrame(model.predict(features))
 
-	messagebox.showinfo(text='Finished prediction. Saving results to file now')
+	messagebox.showinfo(message='Finished prediction. Saving results to file now')
 
 	fileNotLoaded = True
-	counter = 10
+	counter = 0
 	while fileNotLoaded:
 		if counter == 10:
-			messagebox.showerror(title='Error',message='Too many retries. Going to exit')
+			messagebox.showerror(title='Error',message=retryError)
 			sys.exit()
 		try:
-			filename = asksaveasfilename(filetypes=[('CSV','*.csv'),('Excel spreadsheets','*.xls *.xlsx *.xlsm *.xlsb')])
+			counter += 1
+			filename = asksaveasfilename(filetypes=dataFiletypes,
+													title='Save Results')
 			if path.splitext(filename)[1].lower() == '.csv':
-				
-
+				results.to_csv(filename)
+			else:
+				results.to_excel(filename)
+		except Exception as e:
+			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
+			continue
+		fileNotLoaded = False
 
 window = tk.Tk()
 window.title('Machine Learning Creator')
