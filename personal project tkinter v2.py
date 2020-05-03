@@ -274,7 +274,7 @@ def makeModel(window):
 			continue
 		fileNotLoaded = False
 
-	backButton = Button(creating.contentFrame,text='Home Page',font=('Helvetica',30),
+	backButton = Button(creating.contentFrame,text='Back to Home Page',font=('Helvetica',30),
 						command=lambda:[continueVar.set(True),creating.destroy(),homePage(window)])
 	backButton.pack(pady=20)
 
