@@ -7,7 +7,7 @@ from joblib import dump,load
 from datetime import datetime
 
 from numpy import array
-from pandas import DataFrame,read_csv,read_excel
+from pandas import DataFrame,read_csv,read_excel,concat
 
 import tkinter as tk
 from tkinter.font import Font
@@ -268,7 +268,7 @@ def makeModel(window):
 			filepath = asksaveasfilename(initialfile=filename,defaultextension='.mlmc',
 							filetypes=[('Edward Machine Learning Creater Model','*.emlcm')],
 							title='Save As')
-			dump([model,problemType.get(),featureEncoder,targetEncoder,featureTrain.columns],filepath,5)
+			dump([model,problemType.get(),featureEncoder,targetEncoder,featureTrain.columns,targetTrain.columns],filepath,5)
 		except Exception as e:
 			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
 			continue
@@ -297,16 +297,17 @@ def useModel(window):
 		try:
 			counter += 1
 			filename = askopenfilename(filetypes=[('Edward Machine Learning Creator Model','*.emlcm')],title='Load Model')
-			if len(load(filename)) != 5:
+			if len(load(filename)) != 6:
 				raise ValueError('File is invalid')
-			model,problemType,featureEncoder,targetEncoder,featureColumns = load(filename)
+			model,problemType,featureEncoder,targetEncoder,featureColumns,targetColumn = load(filename)
 			if not(
 				   ('sklearn' in str(type(model))) and
 				   ('Classification' in problemType or 'Regression' in problemType) and
 				   ('Text' in problemType or 'Regression' in problemType) and
 				   ('LabelEncoder' in str(type(featureEncoder))) and
 				   ('LabelEncoder' in str(type(targetEncoder))) and
-				   ('pandas.core.indexes.base.Index' in str(type(featureColumns)))
+				   ('pandas.core.indexes.base.Index' in str(type(featureColumns))),
+				   ('pandas.core.indexes.base.Index' in str(type(targetColumn)))
 				   ):
 				raise ValueError('File is invalid')
 		except Exception as e:
@@ -325,8 +326,11 @@ def useModel(window):
 		try:
 			counter += 1
 			filename = askopenfilename(filetypes=dataFiletypes,
-												title='Load Features')
-			features = read_csv(filename)
+									   title='Load Features')
+			if path.splitext(filename)[1].lower() == '.csv':
+				features = read_csv(filename)
+			else:
+				features = read_excel(filename)
 			features = features.dropna(how='any')
 			if features.columns.tolist() != featureColumns.tolist():
 				raise ValueError('incorrect features (columns)')
@@ -335,9 +339,10 @@ def useModel(window):
 			continue
 		fileNotLoaded = False
 
-	results = DataFrame(model.predict(features))
+	results = DataFrame(model.predict(features),columns=targetColumn)
+	results = concat([features,results],axis=1)
 
-	messagebox.showinfo(message='Finished prediction. Saving results to file now')
+	messagebox.showinfo(title='Save',message='Finished prediction. Saving results to file now')
 
 	fileNotLoaded = True
 	counter = 0
@@ -348,7 +353,11 @@ def useModel(window):
 		try:
 			counter += 1
 			filename = asksaveasfilename(filetypes=dataFiletypes,
-													title='Save Results')
+										 title='Save Results',
+										 initialfile=path.split(path.splitext(filename)[0])[1]+
+										 			 'results'+datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
+										 defaultextension='.csv'
+													  )
 			if path.splitext(filename)[1].lower() == '.csv':
 				results.to_csv(filename)
 			else:
@@ -357,6 +366,17 @@ def useModel(window):
 			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
 			continue
 		fileNotLoaded = False
+
+	continueVar = BooleanVar()
+	backButton = Button(PredictPage.contentFrame,text='Home Page',font=('Helvetica',30),
+						command=lambda:[continueVar.set(True),PredictPage.destroy(),homePage(window)])
+	backButton.pack(pady=20)
+
+	quitButton = Button(PredictPage.contentFrame,text='Quit',font=('Helvetica',30),
+						command=lambda:[continueVar.set(True),window.destroy()])
+	quitButton.pack(pady=20)
+
+	PredictPage.wait_variable(continueVar)
 
 window = tk.Tk()
 window.title('Machine Learning Creator')
