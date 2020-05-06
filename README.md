@@ -10,6 +10,21 @@ Requirements
 * joblib
 * numpy
 * pandas
-* kinter
+* tkinter
 * sklearn
 
+
+Get python from the [website](https://www.python.org/downloads/)
+
+
+Pip commands
+
+After installing python open a command window and paste these commands in
+
+```
+pip install joblib
+pip intall numpy
+pip install pandas
+pip install tkinter
+pip install sklearn
+```
