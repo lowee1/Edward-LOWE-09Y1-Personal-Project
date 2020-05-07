@@ -92,10 +92,10 @@ class page(Frame):
 		self.contentFrame = Frame(self)
 		self.contentFrame.pack()
 
-class scrollingListbox(Frame):
+class ScrollingListbox(Frame):
 
 	def __init__(self,master,height=10,width=45):
-		super(scrollingListbox,self).__init__(master)
+		super(ScrollingListbox,self).__init__(master)
 
 		self.listbox = Listbox(self,selectmode='extended',height=height,width=width)
 		self.listbox.grid(column=0,row=0)
@@ -106,20 +106,20 @@ class scrollingListbox(Frame):
 		self.listbox.config(yscrollcommand=self.scrollbar.set)
 		self.scrollbar.config(command=self.listbox.yview)
 
-def homePage(window):
-	HomePage = page(window,'Machine Learning Creator')
-	HomePage.pack()
+def HomePage(window):
+	Home_Page = page(window,'Machine Learning Creator')
+	Home_Page.pack()
 
 	makeOrUse = StringVar()
 
-	startButton = Button(HomePage.contentFrame,text='Start',command=lambda:makeOrUse.set('make'),font=('helvetica',30))
+	startButton = Button(Home_Page.contentFrame,text='Start',command=lambda:makeOrUse.set('make'),font=('helvetica',30))
 	startButton.pack(pady=20)
 
-	predictButton = Button(HomePage.contentFrame,text='Predict',command=lambda:makeOrUse.set('use'),font=('helvetica',30))
+	predictButton = Button(Home_Page.contentFrame,text='Predict',command=lambda:makeOrUse.set('use'),font=('helvetica',30))
 	predictButton.pack(pady=20)
 
-	HomePage.wait_variable(makeOrUse)
-	HomePage.pack_forget()
+	Home_Page.wait_variable(makeOrUse)
+	Home_Page.pack_forget()
 
 	if makeOrUse.get() == 'make':
 		makeModel(window)
@@ -185,12 +185,12 @@ def makeModel(window):
 		fileNotLoaded = False
 
 	# listbox with all the column names
-	columnListbox = scrollingListbox(DataCollecting.contentFrame,20)
+	columnListbox = ScrollingListbox(DataCollecting.contentFrame,20)
 	columnListbox.grid(column=0,row=0,rowspan=8,padx=10,pady=10,sticky='ns')
 	for columName in trainingDataDF.columns:
 		columnListbox.listbox.insert('end',columName)
 
-	featureListbox = scrollingListbox(DataCollecting.contentFrame)
+	featureListbox = ScrollingListbox(DataCollecting.contentFrame)
 	featureListbox.grid(column=2,row=0,rowspan=4,padx=10,pady=10)
 
 	featureAddButton = Button(DataCollecting.contentFrame,text='Add >>>',
@@ -202,7 +202,7 @@ def makeModel(window):
 	featureRemoveButton.grid(column=1,row=2)
 
 
-	targetListbox = scrollingListbox(DataCollecting.contentFrame)
+	targetListbox = ScrollingListbox(DataCollecting.contentFrame)
 	targetListbox.grid(column=2,row=4,rowspan=4,padx=10,pady=10)
 
 	targetAddButton = Button(DataCollecting.contentFrame,text='Add >>>',
@@ -275,7 +275,7 @@ def makeModel(window):
 		fileNotLoaded = False
 
 	backButton = Button(creating.contentFrame,text='Back to Home Page',font=('Helvetica',30),
-						command=lambda:[continueVar.set(True),creating.destroy(),homePage(window)])
+						command=lambda:[continueVar.set(True),creating.destroy(),HomePage(window)])
 	backButton.pack(pady=20)
 
 	quitButton = Button(creating.contentFrame,text='Quit',font=('Helvetica',30),
@@ -306,7 +306,7 @@ def useModel(window):
 				   ('Text' in problemType or 'Regression' in problemType) and
 				   ('LabelEncoder' in str(type(featureEncoder))) and
 				   ('LabelEncoder' in str(type(targetEncoder))) and
-				   ('pandas.core.indexes.base.Index' in str(type(featureColumns))),
+				   ('pandas.core.indexes.base.Index' in str(type(featureColumns)))and
 				   ('pandas.core.indexes.base.Index' in str(type(targetColumn)))
 				   ):
 				raise ValueError('File is invalid')
@@ -369,7 +369,7 @@ def useModel(window):
 
 	continueVar = BooleanVar()
 	backButton = Button(PredictPage.contentFrame,text='Home Page',font=('Helvetica',30),
-						command=lambda:[continueVar.set(True),PredictPage.destroy(),homePage(window)])
+						command=lambda:[continueVar.set(True),PredictPage.destroy(),HomePage(window)])
 	backButton.pack(pady=20)
 
 	quitButton = Button(PredictPage.contentFrame,text='Quit',font=('Helvetica',30),
@@ -382,6 +382,6 @@ window = tk.Tk()
 window.title('Machine Learning Creator')
 window.state('zoomed')
 
-homePage(window)
+HomePage(window)
 
 window.mainloop()
