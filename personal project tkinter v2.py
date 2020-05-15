@@ -178,7 +178,7 @@ def makeModel(window):
 			if len(trainingDataDF.index) < 50:
 				raise ValueError(': Not enough data. Have to have at least 50 samples of data.\n'
 								 'If you think you have enough, it might be because there were'
-								 'invalid values that were autmoatically taken out.')
+								 'invalid values that were automatically taken out.')
 		except Exception as e:
 			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
 			continue
