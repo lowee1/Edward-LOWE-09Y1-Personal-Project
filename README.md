@@ -28,3 +28,7 @@ pip install pandas
 pip install tkinter
 pip install sklearn
 ```
+## Warnings
+You must have more than 50 lines of training data
+
+You must have exactly one target column (because I can't handle multiclass-multioutput)
