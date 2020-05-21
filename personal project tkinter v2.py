@@ -333,7 +333,7 @@ def useModel(window):
 				features = read_excel(filename)
 			features = features.dropna(how='any')
 			if features.columns.tolist() != featureColumns.tolist():
-				raise ValueError('incorrect features (columns)')
+				raise ValueError(' incorrect features (columns)')
 		except Exception as e:
 			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
 			continue
@@ -359,9 +359,9 @@ def useModel(window):
 										 defaultextension='.csv'
 													  )
 			if path.splitext(filename)[1].lower() == '.csv':
-				results.to_csv(filename)
+				results.to_csv(filename,index=False)
 			else:
-				results.to_excel(filename)
+				results.to_excel(filename,index=False)
 		except Exception as e:
 			messagebox.showerror(title='Error',message=str(type(e)).split('\'')[1]+str(e))
 			continue
